@@ -2,12 +2,12 @@
 
 ## 1. Problem Statement
 
-- LearnLanka is a Colombo-based online tutoring platform for O/L and A/L students. It helps students find vetted tutors by subject, grade, language, and price. Students can book one-hour sessions and pay using cards or eZ Cash. Tutors can manage their availability and accept or decline bookings. They can also cancel sessions with at least 12 hours' notice and receive weekly bank transfers. The platform charges a 15% commission on completed sessions. Both students and tutors can rate each other and leave comments after sessions. Operations staff can monitor bookings, payments, users, ratings, and exceptions. The system must show search results within 800 milliseconds for 95% of searches. The booking service must be available 99.5% of the time each month. It must support 200 video sessions at the same time. The platform must be mobile-friendly, especially for Android users, and support Sinhala, Tamil, and English. It must comply with Sri Lanka's Personal Data Protection Act 2022. Payment data must not be stored on LearnLanka servers. The platform will use Azure services, PayHere for payments, and Sampath Vishwa for tutor payouts.
+LearnLanka is a Colombo-based online tutoring platform for O/L and A/L students. It helps students find vetted tutors by subject, grade, language, and price. Students can book one-hour sessions and pay using cards or eZ Cash. Tutors can manage their availability and accept or decline bookings. They can also cancel sessions with at least 12 hours' notice and receive weekly bank transfers. The platform charges a 15% commission on completed sessions. Both students and tutors can rate each other and leave comments after sessions. Operations staff can monitor bookings, payments, users, ratings, and exceptions. The system must show search results within 800 milliseconds for 95% of searches. The booking service must be available 99.5% of the time each month. It must support 200 video sessions at the same time. The platform must be mobile-friendly, especially for Android users, and support Sinhala, Tamil, and English. It must comply with Sri Lanka's Personal Data Protection Act 2022. Payment data must not be stored on LearnLanka servers. The platform will use Azure services, PayHere for payments, and Sampath Vishwa for tutor payouts.
 
 
 ## 2. Personas
 
-- **Student**
+**Student**
 
 - **Goals:**
 
@@ -26,7 +26,7 @@
 4. Video call lags, drops, or uses too much data.
 5. Cancelled sessions without clear communication.
 
-     -**Tutor**
+**Tutor**
 
 - **Goals:** 
 
@@ -44,7 +44,7 @@
 4. Difficulty managing availability.
 5. Video call drops or poor internet during a session.
 
--**Operations Admin**
+**Operations Admin**
 
 - **Goals:** 
 
@@ -63,7 +63,7 @@
 
 ## 3. Functional Requirements
 
--**Student**
+**Student**
 
 1.	FR-S1: The platform must allow a Student to search for tutors by subject, grade, language (Sinhala, Tamil, or English), and price band.
 2.	FR-S10: The platform must allow t Student to choose the app language (Sinhala, Tamil, or English), and all screens must appear in the selected language.
@@ -74,7 +74,7 @@
 7.	FR-S8: The platform must allow a Student to join the online session from the booking at the scheduled time.
 8.	FR-S9: The platform must allow a Student to rate a Tutor from 1 to 5 stars and submit a one-line comment after a completed session.
 
--**Tutor**
+**Tutor**
 
 1.	FR-T1: The platform must allow a Tutor to create a profile with subjects, grades, languages, and an hourly price.
 2.	FR-T2: The platform must allow a Tutor to publish and remove availability slots. A booked slot must not be shown to other students.
@@ -85,7 +85,7 @@
 7.	FR-T7: The platform must allow a Tutor to view earnings for each completed session, including the 15% platform commission and the net amount.
 8.	FR-T8: The platform must allow a Tutor to save bank account details and receive a weekly payout by bank transfer.
 
--**Operations Admin**
+**Operations Admin**
 
 1.	FR-A1: The platform must allow an Operations Admin to approve or reject a tutor.
 2.	FR-A2: The platform must allow an Operations Admin to view all bookings, sessions, and payments with their current status.

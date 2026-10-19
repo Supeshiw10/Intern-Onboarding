@@ -15,7 +15,7 @@
 
 ### INVEST self-check
 
-- [ ] 
+- [ ] Independent
 - [x] Negotiable
 - [x] Valuable
 - [x] Estimable

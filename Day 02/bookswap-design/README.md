@@ -25,6 +25,8 @@ BookSwap container diagram
 | Notification worker | Processes queue messages and reads the latest 10 books for digests. |
 | Email | Sends emails and weekly digests through Azure Communication Services. |
 
-Line	Meaning
-Solid blue	Synchronous call (request/response)
-Dashed orange	Asynchronous message / background work
+
+| **Line** | **Meaning** |
+|---|---|
+| Solid blue | Synchronous call (request/response) |
+| Dashed orange | Asynchronous message / background work |

@@ -1,0 +1,852 @@
+# BookSwap API - OpenAPI specification
+# OpenAPI version: 3.0.3
+
+openapi: 3.0.3
+
+info:
+  title: BookSwap API
+  description: >
+    A community book-sharing API for neighbours in a Colombo apartment
+    building. Members can list, search, and borrow books, manage loans,
+    and view borrowing history.
+  version: 1.0.0
+  license:
+    name: UNLICENSED
+  contact:
+    name: BookSwap Project Team
+
+# The server URL where the API runs.
+# Prism uses port 4010 for the local mock server
+servers:
+  - url: https://api.bookswap.local
+    description: Example API server
+  - url: http://localhost:4010
+    description: Local mock server
+
+# JWT Bearer authentication for all protected endpoints.
+# JWT Bearer authentication is not enabled at the global level.
+#security:
+ # - bearerAuth: []
+
+tags:
+  - name: Books
+    description: Create, search, and view book listings
+  - name: Borrow Requests
+    description: Request to borrow books and manage requests
+  - name: Loans
+    description: Track loans and book borrowing history
+
+paths:
+
+  # --------------------------------------------------
+  # 1. GET /books - book list, search, filter, pagination
+  # --------------------------------------------------
+  /books:
+    get:
+      tags:
+        - Books
+      summary: List and search books
+      description: >
+        Search by title, author,or ISBN, and optionally filter by book condition.
+      operationId: getBooks
+
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Search title, author, or ISBN
+          schema:
+            type: string
+            maxLength: 200
+          example: Jane Eyre
+
+        - name: condition
+          in: query
+          required: false
+          description: Filter books by physical condition
+          schema:
+            $ref: '#/components/schemas/BookCondition'
+          #When searching for books, you can filter by the condition of the book, but it is not mandatory.
+          #$ref → Reusing a schema defined elsewhere.
+
+        - name: available
+          in: query
+          required: false
+          description: Filter by availability
+          schema:
+            type: boolean
+          #When searching for books, you can filter by availability, but it is not mandatory.
+          #can filter whether a book is currently available for borrowing or not.
+
+        - name: page
+          in: query
+          required: false
+          description: Page number, starting at 1
+          schema:
+            type: integer
+            minimum: 1
+            default: 1 #If the user does not provide a page number, page 1 will be used.
+          #This means that when there are many books, the page number is given so that they can be retrieved as pages rather than displayed all at once.
+
+        - name: pageSize
+          in: query
+          required: false
+          description: Number of books per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10 #If the user does not provide a page size, 10 books per page will be used.
+
+      responses:
+        '200':
+          description: Page of books returned successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookPage'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 2. POST /books -  List a new book
+  # --------------------------------------------------
+
+    post:
+      tags:
+        - Books
+      summary: List a new book
+      description: >
+        Creates a book listing for the authenticated member.
+      operationId: createBook
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+
+      responses:
+        '201':
+          description: Book listing created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 3. GET /books/{bookId} - Get details of a book
+  # --------------------------------------------------
+
+  /books/{bookId}:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+
+    get:
+      tags:
+        - Books
+      summary: Get book details
+      operationId: getBookById
+      description: >
+        Retrieves the details of a specific book by its ID.
+
+      responses:
+        '200':
+          description: Book details returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 4.POST /books/{bookId}/photo - Upload a photo for an existing book
+  # --------------------------------------------------
+
+  /books/{bookId}/photo:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+
+    post:
+      tags:
+        - Books
+      summary: Upload a book photo
+      description: >
+        Upload a JPEG or PNG photo up to 5 MB.
+        The API stores the image in Azure Blob Storage and saves its URL with the book record.
+      operationId: uploadBookPhoto
+
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookPhotoUpload'
+
+      responses:
+        '200':
+          description: Photo uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookPhotoResponse'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Only the book owner can upload a photo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: Photo exceeds the 5 MB limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Only JPEG and PNG images are supported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+
+  # --------------------------------------------------
+  # 5. POST /books/{bookId}/borrow-requests  Request to borrow a book
+  #    User places a new request to borrow a book.
+  # --------------------------------------------------
+
+  /books/{bookId}/borrow-requests:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+  # At this point, the book is already in the system. The system needs to know which book is being requested for loan.
+
+    post:
+      tags:
+        - Borrow Requests
+      summary: Request to borrow a book
+      description: >
+        Creates a pending borrow request. The owner is notified asynchronously. A borrower cannot request their own book.
+      operationId: requestBookBorrow
+
+      responses:
+        '201':
+          description: Borrow request created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowRequest'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Book is unavailable or request already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 6. GET /borrow-requests - View requests related to you
+  # --------------------------------------------------
+
+  /borrow-requests:
+    get:
+      tags:
+        - Borrow Requests
+      summary: List my borrow requests
+      description: >
+        Returns requests associated with the authenticated member,either as a borrower or as an owner.
+      operationId: listMyBorrowRequests
+
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/BorrowRequestStatus'
+
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        # The status query parameter allows filtering requests by their status (PENDING, ACCEPTED, DECLINED). If not provided, all requests are returned.
+        # The Page and PageSize parameters are used for pagination, allowing the client to specify which page of results to retrieve and how many items per page.
+        # This endpoint does not have a bookId parameter. This is because it is not about a specific book, but about a list of borrow requests related to the logged in member.
+
+      responses:
+        '200':
+          description: Borrow requests returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowRequestPage'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+ # --------------------------------------------------
+ # 7. PATCH /borrow-requests/{requestId} - accept / decline
+ # --------------------------------------------------         
+
+  /borrow-requests/{requestId}:
+    parameters:
+      - $ref: '#/components/parameters/RequestId'
+
+    patch:
+      tags:
+        - Borrow Requests
+      summary: Accept or decline a borrow request
+      description: >
+        Only the book owner can accept or decline a pending request.
+        Accepting a request creates a loan and marks the book unavailable.
+      operationId: decideBorrowRequest
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BorrowRequestDecision'
+
+      responses:
+        '200':
+          description: Borrow request updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowRequest'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Only the book owner can decide this request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Request is no longer pending or book is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 8. PATCH /loans/{loanId} - Returning the loan
+  # --------------------------------------------------
+  /loans/{loanId}:
+    parameters:
+      - $ref: '#/components/parameters/LoanId'
+  # The loanId parameter is used to identify the specific loan that is being returned. This is necessary because the system needs to know which loan record to update when marking it as returned.
+  # The request body will contain the status of the loan, which should be set to "RETURNED" to indicate that the book has been returned by the borrower. This endpoint is protected and requires authentication, ensuring that only authorized members can mark a loan as returned.
+  # Here Loan is the unique ID of the loan. Not the Book ID.
+
+    patch:
+      tags:
+        - Loans
+      summary: Mark a loan as returned
+      description: >
+        Marks an active loan as returned. The authenticated member must be authorised to perform this action.
+      operationId: returnLoan
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReturnLoanInput'
+
+      responses:
+        '200':
+          description: Loan updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Member is not authorised to return this loan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Loan is already returned or cannot be returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+  # --------------------------------------------------
+  # 9. GET /books/{bookId}/loans - Book loan history
+  # --------------------------------------------------
+
+  /books/{bookId}/loans:
+    parameters:
+      - $ref: '#/components/parameters/BookId'
+
+    get:
+      tags:
+        - Loans
+      summary: Get borrowing history for a book
+      description: >
+        Returns the loan history for a book, including active,returned, and overdue loans. Personal address and phone details are not returned.
+      operationId: getBookLoanHistory
+
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+
+      responses:
+        '200':
+          description: Loan history returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanPage'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+
+
+# ----------------------------------------------------
+# Reusable components
+# Schemas are defined here and reused in above endpoints using $ref..
+# ----------------------------------------------------
+components:
+
+  # Reusable data structures
+  schemas:
+
+    # Book's physical condition
+    BookCondition:
+      type: string
+      enum:
+        - NEW
+        - GOOD
+        - FAIR
+        - POOR
+
+    # Data sent when adding a book
+    BookInput:
+      type: object
+      required:
+        - title
+        - author
+        - condition
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: Jane Eyre
+        author:
+          type: string
+          minLength: 1
+          maxLength: 150
+          example: Charlotte Bronte
+        isbn:
+          type: string
+          maxLength: 20
+          example: '9780747532699'
+        condition:
+          $ref: '#/components/schemas/BookCondition'
+        photoUrl:
+          type: string
+          format: uri
+          description: >
+            URL of the photo stored in Azure Blob Storage.
+            JPEG or PNG files only, maximum 5 MB.
+          example: https://storage.example.com/books/photo-105.jpg
+
+    # Data sent when uploading a book photo
+    BookPhotoUpload:
+      type: object
+      required:
+        - photo
+      properties:
+        photo:
+          type: string
+          format: binary
+          description: JPEG or PNG image, maximum 5 MB
+
+    BookPhotoResponse:
+      type: object
+      required:
+        - photoUrl
+      properties:
+        photoUrl:
+          type: string
+          format: uri
+          description: URL of the uploaded photo
+
+
+    # API response for a complete book record
+    Book:
+      allOf:
+        - $ref: '#/components/schemas/BookInput'
+        - type: object
+          required:
+            - id
+            - ownerId
+            - available
+            - createdAt
+          properties:
+            id:
+              type: string
+              example: book-105
+            ownerId:
+              type: string
+              description: ID of the member who listed the book
+              example: member-21
+            available:
+              type: boolean
+              description: Whether the book can be requested
+              example: true
+            createdAt:
+              type: string
+              format: date-time
+              example: '2026-10-25T09:00:00Z'
+
+    # Status values for Borrow request 
+    BorrowRequestStatus:
+      type: string
+      enum:
+        - PENDING
+        - ACCEPTED
+        - DECLINED
+
+    # Borrow request record
+    BorrowRequest:
+      type: object
+      required:
+        - id
+        - bookId
+        - borrowerId
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: request-201
+        bookId:
+          type: string
+          example: book-105
+        borrowerId:
+          type: string
+          example: member-32
+        status:
+          $ref: '#/components/schemas/BorrowRequestStatus'
+        createdAt:
+          type: string
+          format: date-time
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        loanId:
+          type: string
+          nullable: true
+          description: Loan ID created after acceptance
+
+    # The input that the owner accepts or declines.
+    BorrowRequestDecision:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ACCEPTED
+            - DECLINED
+
+    # Loan status values
+    LoanStatus:
+      type: string
+      enum:
+        - OUT
+        - RETURNED
+        - OVERDUE
+
+    # Loan record
+    Loan:
+      type: object
+      required:
+        - id
+        - bookId
+        - borrowerId
+        - loanDate
+        - dueDate
+        - status
+      properties:
+        id:
+          type: string
+          example: loan-7001
+        bookId:
+          type: string
+          example: book-105
+        borrowerId:
+          type: string
+          example: member-32
+        loanDate:
+          type: string
+          format: date
+          example: '2026-10-25'
+        dueDate:
+          type: string
+          format: date
+          description: Due date, 30 days after the loan date
+          example: '2026-11-24'
+        returnedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          $ref: '#/components/schemas/LoanStatus'
+
+    # A request to return a loan
+    ReturnLoanInput:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - RETURNED
+
+    # A reusable structure for pagination
+    Page:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalItems
+        - totalPages
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+        totalItems:
+          type: integer
+          example: 25
+        totalPages:
+          type: integer
+          example: 3
+
+    # The response to Books and pagination
+    BookPage:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        pagination:
+          $ref: '#/components/schemas/Page'
+
+    BorrowRequestPage:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BorrowRequest'
+        pagination:
+          $ref: '#/components/schemas/Page'
+
+    LoanPage:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Loan'
+        pagination:
+          $ref: '#/components/schemas/Page'
+
+    # A reusable structure for every error response
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: BOOK_NOT_FOUND
+        message:
+          type: string
+          example: The requested book was not found
+
+  # Reusable path/query parameters
+  parameters:
+    BookId:
+      name: bookId
+      in: path
+      required: true
+      description: Unique identifier of the book
+      schema:
+        type: string
+      example: book-105
+
+    RequestId:
+      name: requestId
+      in: path
+      required: true
+      description: Unique identifier of the borrow request
+      schema:
+        type: string
+      example: request-201
+
+    LoanId:
+      name: loanId
+      in: path
+      required: true
+      description: Unique identifier of the loan
+      schema:
+        type: string
+      example: loan-7001
+
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  # Reusable error responses
+  responses:
+    BadRequest:
+      description: Request is malformed or contains invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationError:
+      description: Request body failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  # JWT Bearer authentication definition
+  # The token for the real app is obtained through Microsoft Entra External ID..
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Supply a valid access token in the Authorization header:
+        Bearer <token>
+ 

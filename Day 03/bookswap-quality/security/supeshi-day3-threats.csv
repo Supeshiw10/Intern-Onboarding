@@ -1,0 +1,10 @@
+ID,Category,Threat,Severity,Mitigation,Owner
+T01,Authentication,Missing or invalid JWT authentication,High,Validate JWT signature issuer audience and expiration,Backend Developer
+T02,Authorization (BOLA),Users accessing or modifying another user's resources,High,Implement resource-level authorization checks,Backend Developer
+T03,SQL Injection,Unvalidated user input used in SQL queries,High,Use parameterized SQL queries and input validation,Backend Developer
+T04,Transport Security,API communication over insecure HTTP,High,Enforce HTTPS and valid TLS certificates,DevOps Engineer
+T05,Rate Limiting,Excessive requests to authentication and write endpoints,Medium,Implement rate limiting at the gateway or backend,Backend Developer
+T06,Data Protection,PII or sensitive tokens exposed in logs and telemetry,High,Mask sensitive data and restrict log access,Backend Developer
+T07,CORS,Allowing requests from all external domains,Medium,Restrict CORS to trusted frontend domains,Backend Developer
+T08,Security Headers,Missing X-Content-Type-Options response header,Low,Add X-Content-Type-Options nosniff,Backend Developer
+T09,Caching,Sensitive responses may be stored by caching components,Informational,Apply appropriate cache-control directives to sensitive responses,Backend Developer

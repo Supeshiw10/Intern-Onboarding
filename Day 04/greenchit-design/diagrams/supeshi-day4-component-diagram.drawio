@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="1JPjOfPLfqDqrzytgu37">
+    <mxGraphModel dx="2150" dy="1078" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="583" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;fillColor=#85bbf0;strokeColor=#4f8fc9;fontColor=#1a1a1a;fontSize=12;" value="&lt;b&gt;Claims repository&lt;/b&gt;&lt;br&gt;&lt;font style=&#39;font-size:10px&#39;&gt;[EF Core]&lt;/font&gt;&lt;br&gt;&lt;br&gt;One transaction for claim, audit, outbox" vertex="1">
+          <mxGeometry height="100" width="210" x="700" y="640" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

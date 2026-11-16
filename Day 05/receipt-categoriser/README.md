@@ -1,19 +1,15 @@
 # Receipt Categoriser
 
-A TypeScript-based receipt categorisation feature for the GreenChit reimbursement system.
+A TypeScript-based receipt categorisation feature for GreenChit.
 
 ## Features
-- Categorises receipts into five predefined categories.
-- Uses LLM categorisation with rule-based fallback.
-- Provides confidence scores and needs-review status.
-- Logs categorisation suggestions and claimant decisions.
+- Five predefined receipt categories.
+- LLM categorisation with rule-based fallback.
+- Confidence scores and needs-review status.
+- Logs suggestions and claimant decisions.
 
 ## Run Tests
-```bash
-node --experimental-strip-types tests/categoriser.test.ts
-```
+`node --experimental-strip-types tests/categoriser.test.ts`
 
 ## Type Check
-```bash
-npx tsc --noEmit
-```
+`npx tsc --noEmit`
